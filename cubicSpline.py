@@ -4,10 +4,6 @@ import numpy as np
 class CubicSpline:
 
     def __init__(self):
-        """
-        コンストラクタ
-        """
-
         pass
 
     def calcEuclidianDistanceList(self, c):
@@ -156,11 +152,64 @@ class CubicSpline:
 
         return y, dy, ddy, tt, coeffs
 
+    #
+    def cubicSpline3d(self, cv, v0, vn, n, closed):
+        """
+        スプライン曲線の全体の軌道を計算
+
+        input
+        c: 位置の点列 (n, dim)
+        v0: 位置の点列 (1, dim)
+        vn: 位置の点列 (1, dim)
+        n: 制御点間の点数
+
+        output
+        x, y, z
+        """
+
+        S = self.calcEuclidianDistanceList(cv)
+        s = [0.0]
+        for i in range(len(S)):
+            tmp = 0
+            for j in range(i+1):
+                tmp = tmp + S[j]
+            s.append(tmp)
+
+        vv = self.calcVelocity(cv, v0, vn, S)
+        coeffs = self.calcCoeffsWithVelocity(cv, vv, S)
+
+        for i in range(len(S)):
+            if i == 0:
+                x, dx, ddx, ss = self.pieceWiseCubicSpline(s[i], S[i], coeffs[i, 0, :], n)
+                y, dy, ddy, ss = self.pieceWiseCubicSpline(s[i], S[i], coeffs[i, 1, :], n)
+                z, dz, ddz, ss = self.pieceWiseCubicSpline(s[i], S[i], coeffs[i, 2, :], n)
+
+            else:
+                xtmp, dxtmp, ddxtmp, sstmp = self.pieceWiseCubicSpline(s[i], S[i], coeffs[i, 0, :], n)
+                ytmp, dytmp, ddytmp, sstmp = self.pieceWiseCubicSpline(s[i], S[i], coeffs[i, 1, :], n)
+                ztmp, dztmp, ddztmp, sstmp = self.pieceWiseCubicSpline(s[i], S[i], coeffs[i, 2, :], n)
+
+                x.extend(xtmp)
+                dx.extend(dxtmp)
+                ddx.extend(ddxtmp)
+
+                y.extend(ytmp)
+                dy.extend(dytmp)
+                ddy.extend(ddytmp)
+
+                z.extend(ztmp)
+                dz.extend(dztmp)
+                ddz.extend(ddztmp)
+
+                ss.extend(sstmp)
+
+        return x, y, z, dx, dy, dz, ddx, ddy, ddz, ss, coeffs
+
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    def test1dTime():
+    def test1dTimeSeries():
         """
         y=f(t)のスプライン補完を試す関数
         """
@@ -185,8 +234,7 @@ if __name__ == "__main__":
 
         import matplotlib.pyplot as plt
         plt.subplot(311)
-        cv = cv.T
-        plt.plot(cv[0], cv[1], 'o-', label='Control Points')
+        plt.plot(cv[:, 0], cv[:, 1], 'o-', label='Control Points')
         plt.plot(t, y)
         plt.grid()
         plt.subplot(312)
@@ -198,6 +246,43 @@ if __name__ == "__main__":
 
         plt.show()
 
+    def test3dGeometricPath():
+        """
+        3次元のスプライン補完を試す関数 f(x,y,z) = 0
+        """
+        cv = np.array([[ 50.,  25.,  -1.],
+                       [ 59.,  12.,  -1.],
+                       [ 50.,  10.,   1.],
+                       [ 57.,   2.,   1.],
+                       [ 40.,   4.,   1.],
+                       [ 40.,   14.,  -1.]
+                       ])
+
+        v0 = np.zeros((1, 3))
+        vn = np.zeros((1, 3))
+
+        # 軌道を計算
+        npoints = 100
+        cs = CubicSpline()
+        x, y, z, dx, dy, dz, ddx, ddy, ddz, ss, coeffs = cs.cubicSpline3d(cv, v0, vn, npoints, closed=False)
+
+        #
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import axes3d
+        fig = plt.figure(0)
+        ax = fig.gca(projection='3d')
+        ax.plot(cv[:, 0], cv[:, 1], cv[:, 2], 'o-', label='Control Points')
+        ax.plot(x, y, z)
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+        ax.set_xlim(35, 70)
+        ax.set_ylim(0, 30)
+        ax.set_zlim(-1.5, 2.0)
+
+        plt.show()
+
     #
-    test1dTime()
+    #test1dTimeSeries()
+    test3dGeometricPath()
 
