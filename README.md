@@ -6,6 +6,7 @@ A trajectory generation toolkit
 - B-spline (with any degrees)
 - Bezie curve
 - NURBS
+- TOPP
 - DMP
 - iLQG
 - DDP
