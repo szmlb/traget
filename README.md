@@ -25,4 +25,3 @@ LfD:
 Trajectory optimization:
 - iLQG/DDP
 - CHOMP/STOMP
-- and other typical trajectory optimization methods
